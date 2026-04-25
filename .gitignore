@@ -68,5 +68,9 @@ vcpkg_installed/
 Testing/
 .cache/
 
-# microsoft .vs files
+# microsoft files
 .vs/
+.vscode/
+
+# libraries
+libs/

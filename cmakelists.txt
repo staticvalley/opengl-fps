@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(OpenGLFPS LANGUAGES CXX)
+project(OpenGLFPS LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -10,22 +10,24 @@ find_package(SDL3 CONFIG REQUIRED)
 # fetch opengl
 find_package(OpenGL REQUIRED)
 
-# fetch glad
-find_package(glad CONFIG REQUIRED)
-
-# fetch glm
-find_package(glm CONFIG REQUIRED)
+# add glad
+add_library(glad libs/glad/src/glad.c)
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/Shader.cpp
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    src 
+    libs/glm
+)
+target_include_directories(glad PUBLIC libs/glad/include)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL3::SDL3
     OpenGL::GL
-    glm::glm
-    glad::glad
+    glad
 )
 
 # copy sdl3 dll to output dir on windows
