@@ -16,6 +16,7 @@ add_library(glad libs/glad/src/glad.c)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/Shader.cpp
+    src/Camera.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
@@ -28,6 +29,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL3::SDL3
     OpenGL::GL
     glad
+)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets
 )
 
 # copy sdl3 dll to output dir on windows
