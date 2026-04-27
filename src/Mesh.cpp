@@ -1,0 +1,55 @@
+#pragma once
+
+#include "Vertex.hpp"
+#include <glad/glad.h>
+#include <vector>
+
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices) 
+	: vao(0),
+	  vbo(0),
+	  ebo(0),
+	  count((GLsizei)indices.size())
+{
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
+	glGenBuffers(1, &ebo);
+
+	glBindVertexArray(vao);
+
+	// upload vertex data
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+	// upload index data
+	glBindBuffer(GL_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+
+	// set attribute arrays in vertex array
+
+	// position (layout 1)
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+
+	// normals (layout 2)
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+
+	// uv (layout 3)
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
+
+	// unbind vao from context
+	glBindVertexArray(0);
+}
+
+Mesh::~Mesh() {
+	glDeleteVertexArrays(1, vao);
+	glDeleteBuffers(1, vbo);
+	glDeleteBuffers(1, ebo);
+}
+
+void draw() {
+	glBindVertexArray(vao);
+	glDrawElements(GL_TRIANGLES, index, GL_UNSIGNED_INT, nullptr);
+	glBindVertexArray(0);
+}
