@@ -3,9 +3,6 @@
 in vec4 o_world_normal;
 in vec4 o_fragment_position;
 in vec4 o_color;
-in vec2 o_uv;
-
-uniform vec4 u_view_position;
 
 out vec4 frag_color;
 
