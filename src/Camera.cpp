@@ -13,7 +13,7 @@ Camera::Camera(glm::vec3 startPosition, GLfloat fov, GLfloat aspectRatio)
 	  yaw(-90.0f),
 	  pitch(0.0f),
 	  // control presets
-	  mouseSensitivity(0.5f),
+	  mouseSensitivity(0.3f),
 	  movementSpeed(1.0f),
 	  // basic starting camera relative vectors
 	  forward(0.0f, 0.0f, -1.0f),
@@ -49,7 +49,7 @@ glm::mat4 Camera::getProjectionMatrix() {
 void Camera::calcuateRelativeVectors() {
 	/*
 	 * forward vector
-	 *
+	 * eulers angles calculation
 	 */
 	forward = glm::normalize(
 		glm::vec3(
@@ -79,13 +79,14 @@ void Camera::processKeyboard(float dt) {
 
 	if (keyInputs[SDL_SCANCODE_W]) position += forward * velocity;
 	if (keyInputs[SDL_SCANCODE_S]) position -= forward * velocity;
-	if (keyInputs[SDL_SCANCODE_A]) position -= right * velocity;
-	if (keyInputs[SDL_SCANCODE_D]) position += right * velocity;
+	if (keyInputs[SDL_SCANCODE_A]) position += right * velocity;
+	if (keyInputs[SDL_SCANCODE_D]) position -= right * velocity;
 }
 
 void Camera::processMouse(float x, float y) {
 
-	yaw += x * mouseSensitivity;
+	// sdl3's xrel event value is positive when moving right, right is negative in world space, so negation is needed
+	yaw += -x * mouseSensitivity;
 	pitch += y * mouseSensitivity;
 
 	// clamp pitch so you cant roll over top
