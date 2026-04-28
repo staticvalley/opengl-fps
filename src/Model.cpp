@@ -1,11 +1,12 @@
 #pragma once
 
-#include "include/Model.hpp"
-#include "include/Mesh.hpp"
-#include "include/Shader.hpp"
+#include "../include/Model.hpp"
+#include "../include/Mesh.hpp"
+#include "../include/Shader.hpp"
 
 #include <glm/glm.hpp>
 #include <vector>
+#include <glm/ext/matrix_transform.hpp>
 
 Model::Model()
 	: position(0.0f),
