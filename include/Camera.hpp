@@ -7,7 +7,6 @@
 #include <glm/glm.hpp>
 #include <glad/glad.h>
 
-// camera class
 class Camera {
 public:
 
@@ -19,6 +18,9 @@ public:
 
     void processKeyboard(GLfloat dt);
     void processMouse(GLfloat x, GLfloat y);
+
+    // changable by window resize
+    GLfloat aspectRatio;
 
 private:
     // current camera position
@@ -33,9 +35,9 @@ private:
     // camera relative up
     glm::vec3 up;
 
+    // field of view
     GLfloat fov;
-    GLfloat aspectRatio;
-
+    
     // right/left view
     GLfloat yaw;
 

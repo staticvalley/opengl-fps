@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Vertex.hpp"
+#include "../include/Vertex.hpp"
+#include "../include/Mesh.hpp"
+
 #include <glad/glad.h>
 #include <vector>
 
@@ -21,7 +23,7 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices)
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
 	// upload index data
-	glBindBuffer(GL_ARRAY_BUFFER, ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
 	// set attribute arrays in vertex array
@@ -42,14 +44,48 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices)
 	glBindVertexArray(0);
 }
 
-Mesh::~Mesh() {
-	glDeleteVertexArrays(1, vao);
-	glDeleteBuffers(1, vbo);
-	glDeleteBuffers(1, ebo);
+Mesh::Mesh(Mesh&& other) noexcept
+	: vao(other.vao), vbo(other.vbo), ebo(other.ebo), count(other.count)
+{
+	// clear values on rhs object to transfer single ownership
+	other.vao = 0;
+	other.vbo = 0;
+	other.ebo = 0;
+	other.count = 0;
 }
 
-void draw() {
+Mesh& Mesh::operator=(Mesh&& other) noexcept {
+	if (this != &other) {
+
+		// delete any arrays or buffers from lhs object
+		glDeleteVertexArrays(1, &vao);
+		glDeleteBuffers(1, &vbo);
+		glDeleteBuffers(1, &ebo);
+
+		// assign values from rhs object
+		vao = other.vao;
+		vbo = other.vbo;
+		ebo = other.ebo;
+		count = other.count;
+
+		// clear values on rhs object to transfer single ownership
+		other.vao = 0;
+		other.vbo = 0;
+		other.ebo = 0;
+		other.count = 0;
+
+		return *this;
+	}
+}
+
+Mesh::~Mesh() {
+	glDeleteVertexArrays(1, &vao);
+	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &ebo);
+}
+
+void Mesh::draw() {
 	glBindVertexArray(vao);
-	glDrawElements(GL_TRIANGLES, index, GL_UNSIGNED_INT, nullptr);
+	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 	glBindVertexArray(0);
 }

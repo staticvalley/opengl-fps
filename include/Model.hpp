@@ -10,7 +10,7 @@ class Model {
 public:
 
 	Model();
-	
+
 	// note: this function moves mesh data ownership from argument into Model
 	void addMesh(Mesh mesh);
 
@@ -27,4 +27,4 @@ private:
 	// vector of meshes for model
 	std::vector<Mesh> meshList;
 
-}
+};
