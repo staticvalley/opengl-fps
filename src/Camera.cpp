@@ -13,7 +13,7 @@ Camera::Camera(glm::vec3 startPosition, GLfloat fov, GLfloat aspectRatio)
 	  yaw(-90.0f),
 	  pitch(0.0f),
 	  // control presets
-	  mouseSensitivity(0.3f),
+	  mouseSensitivity(0.09f),
 	  movementSpeed(1.0f),
 	  // basic starting camera relative vectors
 	  forward(0.0f, 0.0f, -1.0f),
@@ -81,6 +81,9 @@ void Camera::processKeyboard(float dt) {
 	if (keyInputs[SDL_SCANCODE_S]) position -= forward * velocity;
 	if (keyInputs[SDL_SCANCODE_A]) position += right * velocity;
 	if (keyInputs[SDL_SCANCODE_D]) position -= right * velocity;
+
+	if (keyInputs[SDL_SCANCODE_LSHIFT]) position -= up * velocity;
+	if (keyInputs[SDL_SCANCODE_SPACE]) position += up * velocity;
 }
 
 void Camera::processMouse(float x, float y) {

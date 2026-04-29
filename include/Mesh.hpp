@@ -1,11 +1,15 @@
 #pragma once
 
 #include "Vertex.hpp"
+#include "Material.hpp"
 #include <glad/glad.h>
 #include <vector>
 
 class Mesh {
 public:
+
+	// holds texture for mesh
+	Material material;
 	
 	Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices);
 	~Mesh();
@@ -19,7 +23,7 @@ public:
 	Mesh(Mesh&& other) noexcept; // create move constructor
 	Mesh& operator=(Mesh&& other) noexcept; // create move assignment
 
-	void draw();
+	void draw(Shader& shader);
 
 private:
 	// id to array object

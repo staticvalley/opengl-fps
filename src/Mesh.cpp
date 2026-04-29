@@ -2,6 +2,7 @@
 
 #include "../include/Vertex.hpp"
 #include "../include/Mesh.hpp"
+#include "../include/Material.hpp"
 
 #include <glad/glad.h>
 #include <vector>
@@ -84,7 +85,8 @@ Mesh::~Mesh() {
 	glDeleteBuffers(1, &ebo);
 }
 
-void Mesh::draw() {
+void Mesh::draw(Shader& shader) {
+	material.apply(shader);
 	glBindVertexArray(vao);
 	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
 	glBindVertexArray(0);

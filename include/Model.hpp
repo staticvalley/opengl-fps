@@ -14,7 +14,11 @@ public:
 	// note: this function moves mesh data ownership from argument into Model
 	void addMesh(Mesh mesh);
 
+	void setTexture(Texture* texture);
+
 	void draw(Shader& shader);
+
+	static Model* loadOBJ(const char* filePath);
 
 	glm::vec3 position;
 	glm::vec3 rotation;
