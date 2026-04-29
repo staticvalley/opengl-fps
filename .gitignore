@@ -74,3 +74,7 @@ Testing/
 
 # libraries
 libs/
+
+# models and textures (for now)
+assets/models/
+assets/textures/
