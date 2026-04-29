@@ -18,7 +18,8 @@ SDL_Window* window = nullptr;
 SDL_GLContext opengl_context = nullptr;
 Camera* camera;
 Shader* basic;
-Model* model;
+Model* gman;
+Model* silenthill;
 GLfloat lastTime = 0.0f;
 
 // program initialization
@@ -72,23 +73,22 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
     // hide mouse when window is focused
     SDL_SetWindowRelativeMouseMode(window, true);
 
-    std::vector<Vertex> vertices = {
-    { glm::vec3(-0.5f, -0.5f,  0.5f), glm::vec3(0,0,1), glm::vec2(0,0) },
-    { glm::vec3(0.5f, -0.5f,  0.5f), glm::vec3(0,0,1), glm::vec2(1,0) },
-    { glm::vec3(0.5f,  0.5f,  0.5f), glm::vec3(0,0,1), glm::vec2(1,1) },
-    { glm::vec3(-0.5f,  0.5f,  0.5f), glm::vec3(0,0,1), glm::vec2(0,1) },
-    };
+    gman = Model::loadOBJ("assets/models/gman.obj");
+    gman->position = glm::vec3(0.0f, 1.5f, 0.0f);
+    gman->rotation = glm::vec3(0.0f, 0.0f, 180.0f);
+    gman->scale = glm::vec3(2.0f);
+    gman->setTexture(new Texture("assets/textures/gman.png"));
 
-    std::vector<GLuint> indices = { 0, 1, 2,  2, 3, 0 };
+    silenthill = Model::loadOBJ("assets/models/heathermason.obj");
+    silenthill->position = glm::vec3(2.0f, 1.5f, 0.0f);
+    silenthill->rotation = glm::vec3(0.0f, 0.0f, 180.0f);
+    silenthill->scale = glm::vec3(0.003f);
+    silenthill->setTexture(new Texture("assets/textures/heathermason.png"));
 
-    model = new Model();
-    model->addMesh(Mesh(vertices, indices));
-    model->position = glm::vec3(0.0f, 0.0f, 0.0f);
-
-    basic = new Shader("assets/basic.vert", "assets/basic.frag");
+    basic = new Shader("assets/shaders/basic.vert", "assets/shaders/basic.frag");
 
     camera = new Camera(
-        glm::vec3(0.0, 0.0, 0.0),
+        glm::vec3(0.0, 0.0, 2.0),
         90.0f,
         WINDOW_WIDTH / WINDOW_HEIGHT
     );
@@ -110,10 +110,14 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
 
+    gman->rotation.y = gman->rotation.y += 1.0f;
+    silenthill->rotation.y = silenthill->rotation.y += 1.0f;
+
     basic->bind();
     basic->setUniformMat4("u_view", camera->getViewMatrix());
     basic->setUniformMat4("u_projection", camera->getProjectionMatrix());
-    model->draw(*basic);
+    gman->draw(*basic);
+    silenthill->draw(*basic);
     
     // switch buffer to screen
     SDL_GL_SwapWindow(window);
@@ -145,7 +149,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
     delete camera;
     delete basic;
-    delete model;
+    delete gman;
+    delete silenthill;
     SDL_GL_DestroyContext(opengl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();

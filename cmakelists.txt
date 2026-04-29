@@ -19,11 +19,15 @@ add_executable(${PROJECT_NAME}
     src/Camera.cpp
     src/Mesh.cpp
     src/Model.cpp
+    src/Texture.cpp
+    src/Material.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     src 
     libs/glm
+    libs/stb
+    libs/tinyobj
 )
 target_include_directories(glad PUBLIC libs/glad/include)
 
@@ -33,11 +37,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     glad
 )
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+add_custom_target(copy_assets ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/assets
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets
 )
+
+add_dependencies(${PROJECT_NAME} copy_assets)
 
 # copy sdl3 dll to output dir on windows
 if(WIN32)
