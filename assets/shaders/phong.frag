@@ -1,46 +1,164 @@
-#version 330 core
+#version 460 core
 
-in vec4 o_world_normal;
-in vec4 o_fragment_position;
-in vec4 o_color;
+in vec3 v_fragment_position; // world space position
+in vec3 v_normal; // world space normal
+in vec2 v_uv; // uv coords for texture sampling
 
 out vec4 frag_color;
 
+uniform sampler2D u_texture;
+
+// define types of lights
+
+struct DirectionalLight {
+    vec3 direction;
+    vec3 ambient_color;
+    vec3 diffuse_color;
+    vec3 specular_color;
+};
+
+struct PointLight {
+    vec3 position;
+    vec3 ambient_color;
+    vec3 diffuse_color;
+    vec3 specular_color;
+    float constant;
+    float linear;
+    float quadratic;
+};
+
+struct SpotLight {
+    vec3 position;
+    vec3 direction;
+    vec3 ambient_color;
+    vec3 diffuse_color;
+    vec3 specular_color;
+    float cutoff;
+    float outer_cutoff;
+    float constant;
+    float linear;
+    float quadratic;
+};
+
+#define MAX_POINT_LIGHTS 32
+#define MAX_SPOT_LIGHTS 32
+
+uniform DirectionalLight	u_directional_light;
+uniform bool				u_has_directional_light;
+
+uniform PointLight			u_point_lights[MAX_POINT_LIGHTS];
+uniform int					u_point_light_count;
+
+uniform SpotLight			u_spot_lights[MAX_SPOT_LIGHTS];
+uniform int					u_spot_light_count;
+
+uniform vec3				u_camera_position;
+
+// function prototypes
+vec3 calculate_directional_light(DirectionalLight light, vec3 normal, vec3 viewing_direction);
+vec3 calculate_point_light(PointLight light, vec3 normal, vec3 fragment_position, vec3 viewing_direction);
+vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 fragment_position, vec3 viewing_direction);
+
 void main(){
 
-	// base constants
-	float u_ambient_level = 0.8;
-	float u_shininess = 40;
+	// get normalized direction from camera to fragment
+	vec3 viewing_direction = normalize(u_camera_position - v_fragment_position);
 
-	// compute ambient lighting 
-	vec4 ambient = (o_color * u_ambient_level);
+	// get base color from sampling mesh texture
+	vec3 base_color = vec3(texture(u_texture, v_uv));
 
-	// get distance between lightsource and fragment
-	float distance = length(u_light_position - o_fragment_position);
-		
-	// my custom attenuation func
-	// TODO: remove first attempt if other works:
-	//float attenuation = 1.0 / pow(distance*u_light_strength, 2);
-	// slides have min(1/c1+(c2*dl)+(c3*dl^2))
-	float attenuation = min(1.0 / (1.0 + (u_light_strength * pow(distance, 2.0))), 1.0);
+	vec3 lighting_factor = vec3(0.0);
 
-	// compute diffuse lighting prerequisites
-	vec4 N = normalize(o_world_normal); // surface normal
-	vec4 L = normalize(u_light_position - o_fragment_position); // light direction vector
+	// add directional lighting
+	if(u_has_directional_light)
+		lighting_factor += calculate_directional_light(u_directional_light, normalize(v_normal), viewing_direction);
 
-	// add diffuse from light to the final diffuse value
-	vec4 diffuse = o_color * clamp(dot(N, L), 0.0, 1.0) * attenuation;
+	// add point lighting
+	for(int i = 0; i < u_point_light_count; i++)
+		lighting_factor += calculate_point_light(u_point_lights[i], normalize(v_normal), v_fragment_position, viewing_direction);
+	
+	// add spot lighting
+	for(int i = 0; i < u_spot_light_count; i++)
+		lighting_factor += calculate_spot_light(u_spot_lights[i], normalize(v_normal), v_fragment_position, viewing_direction);
 
-	// compute specular lighting prerequisites
-	vec4 V = normalize(u_view_position - o_fragment_position);
-	vec4 R = -L + (2.0 * dot(N, L) * N);
+	frag_color = vec4(lighting_factor * base_color, 1.0);
+}
 
-	// compute specular lighting
-	float spec = pow(clamp(dot(V,R), 0.0, 1.0), u_shininess);
+vec3 calculate_directional_light(DirectionalLight light, vec3 normal, vec3 viewing_direction) {
+	
+	// get direction of fragment surface towards light
+	vec3 light_direction = normalize(-light.direction);
 
-	// add specular from some light to the final specular value
-	vec4 specular = o_color * spec * attenuation;
+	// get cosine of angle between surface normal and light direction
+	// (1): fully lit (0): no light
+	float diffuse_weight = max(dot(normal, light_direction), 0.0);
 
-	// add all sources
-	frag_color = ambient + diffuse + specular;
+	// get mirrored direction of light
+	vec3 reflect_direction = reflect(-light_direction, normal);
+	
+	// get cosine of angle between viewing direction and reflection and compare
+	float specular_weight = pow(max(dot(viewing_direction, reflect_direction), 0.0), 32.0);
+
+	// ambient + diffuse + specular for final light value
+	return light.ambient_color + (light.diffuse_color * diffuse_weight) + (light.specular_color * specular_weight);
+}
+
+vec3 calculate_point_light(PointLight light, vec3 normal, vec3 fragment_position, vec3 viewing_direction) {
+	
+	// get direction of fragment surface towards light
+	vec3 light_direction = normalize(light.position - fragment_position);
+
+	// get cosine of angle between surface normal and light direction
+	// (1): fully lit (0): no light
+	float diffuse_weight = max(dot(normal, light_direction), 0.0);
+
+	// get mirrored direction of light
+	vec3 reflect_direction = reflect(-light_direction, normal);
+	
+	// get cosine of angle between viewing direction and reflection and compare
+	float specular_weight = pow(max(dot(viewing_direction, reflect_direction), 0.0), 32.0);
+
+	// distance to light source from fragment position
+	float distance = length(light.position - fragment_position);
+
+	// light "falloff" based on distance
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * distance * distance);
+
+    vec3 ambient = light.ambient_color * attenuation;
+    vec3 diffuse = light.diffuse_color * diffuse_weight * attenuation;
+    vec3 specular = light.specular_color * specular_weight * attenuation;
+    return ambient + diffuse + specular;
+}
+
+vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 fragment_position, vec3 viewing_direction) {
+	
+	// get direction of fragment surface towards light
+	vec3 light_direction = normalize(light.position - fragment_position);
+
+	// get cosine of angle between surface normal and light direction
+	// (1): fully lit (0): no light
+	float diffuse_weight = max(dot(normal, light_direction), 0.0);
+
+	// get mirrored direction of light
+	vec3 reflect_direction = reflect(-light_direction, normal);
+	
+	// get cosine of angle between viewing direction and reflection and compare
+	float specular_weight = pow(max(dot(viewing_direction, reflect_direction), 0.0), 32.0);
+
+	// distance to light source from fragment position
+	float distance = length(light.position - fragment_position);
+
+	float attenuation = 1.0 / (light.constant + (light.linear * distance) + (light.quadratic * pow(distance, 2)));
+
+	// check fragment surface alignment with center of spotlight cone
+	float theta   = dot(light_direction, normalize(-light.direction));
+
+
+    float epsilon = light.cutoff - light.outer_cutoff;
+    float intensity = clamp((theta - light.outer_cutoff) / epsilon, 0.0, 1.0);
+
+	vec3 ambient  = light.ambient_color * attenuation;
+    vec3 diffuse  = light.diffuse_color * diffuse_weight * attenuation * intensity;
+    vec3 specular = light.specular_color * specular_weight * attenuation * intensity;
+    return ambient + diffuse + specular;
 }
