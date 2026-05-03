@@ -13,28 +13,50 @@ find_package(OpenGL REQUIRED)
 # add glad
 add_library(glad libs/glad/src/glad.c)
 
-add_executable(${PROJECT_NAME}
-    src/main.cpp
-    src/Shader.cpp
-    src/Camera.cpp
-    src/Mesh.cpp
-    src/Model.cpp
-    src/Texture.cpp
-    src/Material.cpp
+target_include_directories(glad PUBLIC libs/glad/include)
+
+# add Dear imgui
+add_library(imgui
+    libs/imgui/imgui.cpp
+    libs/imgui/imgui_draw.cpp
+    libs/imgui/imgui_tables.cpp
+    libs/imgui/imgui_widgets.cpp
+    libs/imgui/backends/imgui_impl_sdl3.cpp
+    libs/imgui/backends/imgui_impl_opengl3.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE 
-    src 
-    libs/glm
+target_include_directories(imgui PUBLIC libs/imgui libs/imgui/backends)
+
+# imgui needs sdl3 for binding
+target_link_libraries(imgui PRIVATE SDL3::SDL3)
+
+add_executable(${PROJECT_NAME}
+    src/main.cpp
+    src/rendering/Shader.cpp
+    src/scene/Camera.cpp
+    src/rendering/Mesh.cpp
+    src/rendering/Model.cpp
+    src/rendering/Texture.cpp
+    src/rendering/Material.cpp
+    src/rendering/Skybox.cpp
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    src/
+    include/
+    include/rendering/
+    include/scene/
+    libs/glad/include
     libs/stb
+    libs/glm
     libs/tinyobj
 )
-target_include_directories(glad PUBLIC libs/glad/include)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL3::SDL3
     OpenGL::GL
     glad
+    imgui
 )
 
 add_custom_target(copy_assets ALL
@@ -52,4 +74,11 @@ if(WIN32)
             $<TARGET_FILE:SDL3::SDL3>
             $<TARGET_FILE_DIR:${PROJECT_NAME}>
     )
+endif()
+
+# turn on compiler warnings
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
