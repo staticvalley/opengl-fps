@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../include/Vertex.hpp"
-#include "../include/Mesh.hpp"
-#include "../include/Material.hpp"
+#include <Vertex.hpp>
+#include <Mesh.hpp>
+#include <Material.hpp>
 
 #include <glad/glad.h>
 #include <vector>

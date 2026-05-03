@@ -19,10 +19,6 @@ public:
     void processKeyboard(GLfloat dt);
     void processMouse(GLfloat x, GLfloat y);
 
-    // changable by window resize
-    GLfloat aspectRatio;
-
-private:
     // current camera position
     glm::vec3 position;
 
@@ -34,6 +30,11 @@ private:
 
     // camera relative up
     glm::vec3 up;
+
+    // changable by window resize
+    GLfloat aspectRatio;
+
+private:
 
     // field of view
     GLfloat fov;

@@ -3,9 +3,9 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "../libs/tinyobj/tiny_obj_loader.h"
 
-#include "../include/Model.hpp"
-#include "../include/Mesh.hpp"
-#include "../include/Shader.hpp"
+#include <Model.hpp>
+#include <Mesh.hpp>
+#include <Shader.hpp>
 
 #include <glm/glm.hpp>
 #include <vector>

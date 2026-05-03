@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/Camera.hpp"
+#include <Camera.hpp>
 #include <SDL3/SDL.h>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -66,7 +66,7 @@ void Camera::calcuateRelativeVectors() {
 
 	// up vector (cross product of camera forward and camera right)
 	up = glm::normalize(
-		glm::cross(forward, right)
+		glm::cross(right, forward)
 	);
 }
 
@@ -79,8 +79,8 @@ void Camera::processKeyboard(float dt) {
 
 	if (keyInputs[SDL_SCANCODE_W]) position += forward * velocity;
 	if (keyInputs[SDL_SCANCODE_S]) position -= forward * velocity;
-	if (keyInputs[SDL_SCANCODE_A]) position += right * velocity;
-	if (keyInputs[SDL_SCANCODE_D]) position -= right * velocity;
+	if (keyInputs[SDL_SCANCODE_A]) position -= right * velocity;
+	if (keyInputs[SDL_SCANCODE_D]) position += right * velocity;
 
 	if (keyInputs[SDL_SCANCODE_LSHIFT]) position -= up * velocity;
 	if (keyInputs[SDL_SCANCODE_SPACE]) position += up * velocity;
@@ -89,8 +89,8 @@ void Camera::processKeyboard(float dt) {
 void Camera::processMouse(float x, float y) {
 
 	// sdl3's xrel event value is positive when moving right, right is negative in world space, so negation is needed
-	yaw += -x * mouseSensitivity;
-	pitch += y * mouseSensitivity;
+	yaw += x * mouseSensitivity;
+	pitch -= y * mouseSensitivity;
 
 	// clamp pitch so you cant roll over top
 	if (pitch > 89.0f) pitch = 89.0f;

@@ -2,7 +2,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "../libs/stb/stb_image.h"
-#include "../include/Texture.hpp"
+#include <Texture.hpp>
 #include <SDL3/SDL.h>
 
 Texture::Texture(const char* filePath) {

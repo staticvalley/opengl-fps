@@ -23,6 +23,9 @@ public:
     // uniform setters
     // ###############
 
+    // set bool uniform on shader
+    void setUniformBool1(const char* name, const bool value);
+
     // set integer uniform on shader
     void setUniformInt1(const char* name, int value);
 

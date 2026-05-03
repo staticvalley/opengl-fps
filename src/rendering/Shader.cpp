@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/Shader.hpp"
+#include <Shader.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glad/glad.h>
@@ -92,6 +92,10 @@ void Shader::bind() {
 
 void Shader::unbind() {
     glUseProgram(0);
+}
+
+void Shader::setUniformBool1(const char* name, const bool value) {
+    glUniform1i(getUniformLocation(name), (int)value);
 }
 
 void Shader::setUniformInt1(const char* name, int value) {

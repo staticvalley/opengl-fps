@@ -1,4 +1,4 @@
-#include "../include/Material.hpp"
+#include <Material.hpp>
 
 void Material::apply(Shader& shader) {
 	if (diffuseTexture) {
