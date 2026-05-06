@@ -2,6 +2,7 @@
 
 #include <Mesh.hpp>
 #include <Shader.hpp>
+#include <Collision.hpp>
 
 #include <glm/glm.hpp>
 #include <vector>
@@ -23,6 +24,8 @@ public:
 	glm::vec3 position;
 	glm::vec3 rotation;
 	glm::vec3 scale;
+
+	AABB boundingBox;
 
 	glm::mat4 getModelMatrix();
 

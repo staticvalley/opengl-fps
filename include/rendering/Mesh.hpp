@@ -25,6 +25,9 @@ public:
 
 	void draw(Shader& shader);
 
+	// hold vertices for collision detection
+	std::vector<Vertex> vertices;
+
 private:
 	// id to array object
 	GLuint vao;

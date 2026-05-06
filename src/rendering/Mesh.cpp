@@ -11,7 +11,8 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices)
 	: vao(0),
 	  vbo(0),
 	  ebo(0),
-	  count((GLsizei)indices.size())
+	  count((GLsizei)indices.size()),
+	  vertices(vertices)
 {
 	glGenVertexArrays(1, &vao);
 	glGenBuffers(1, &vbo);
@@ -46,7 +47,7 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<GLuint> indices)
 }
 
 Mesh::Mesh(Mesh&& other) noexcept
-	: vao(other.vao), vbo(other.vbo), ebo(other.ebo), count(other.count)
+	: vao(other.vao), vbo(other.vbo), ebo(other.ebo), count(other.count), vertices(other.vertices)
 {
 	// clear values on rhs object to transfer single ownership
 	other.vao = 0;
@@ -68,12 +69,14 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept {
 		vbo = other.vbo;
 		ebo = other.ebo;
 		count = other.count;
+		vertices = other.vertices;
 
 		// clear values on rhs object to transfer single ownership
 		other.vao = 0;
 		other.vbo = 0;
 		other.ebo = 0;
 		other.count = 0;
+		other.vertices.clear();
 
 		return *this;
 	}

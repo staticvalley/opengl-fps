@@ -44,6 +44,22 @@ glm::mat4 Model::getModelMatrix() {
 	return model;
 }
 
+void Model::updateBoundingBox() {
+	glm::vec3 minVertex(FLT_MAX);
+	glm::vec3 maxVertex(-FLT_MAX);
+
+	// find min and max vertices for box corners
+	for (Mesh& mesh : meshList) {
+		for (Vertex& vertex : mesh.vertices) {
+			glm::vec3 vertexWorldPosition = glm::vec3(getModelMatrix() * glm::vec4(vertex.position, 1.0f));
+			minVertex = glm::min(minVertex, vertexWorldPosition);
+			maxVertex = glm::max(maxVertex, vertexWorldPosition);
+		}
+	}
+
+	boundingBox = { minVertex, maxVertex };
+}
+
 Model* Model::loadOBJ(const char* filePath) {
 	
 	tinyobj::attrib_t attribute;

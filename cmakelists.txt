@@ -21,6 +21,7 @@ add_library(imgui
     libs/imgui/imgui_draw.cpp
     libs/imgui/imgui_tables.cpp
     libs/imgui/imgui_widgets.cpp
+    libs/imgui/imgui_demo.cpp
     libs/imgui/backends/imgui_impl_sdl3.cpp
     libs/imgui/backends/imgui_impl_opengl3.cpp
 )
@@ -46,6 +47,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     include/
     include/rendering/
     include/scene/
+    include/physics/
     libs/glad/include
     libs/stb
     libs/glm
