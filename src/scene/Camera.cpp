@@ -14,7 +14,6 @@ Camera::Camera(glm::vec3 startPosition, GLfloat fov, GLfloat aspectRatio)
 	  pitch(0.0f),
 	  // control presets
 	  mouseSensitivity(0.09f),
-	  movementSpeed(1.0f),
 	  // basic starting camera relative vectors
 	  forward(0.0f, 0.0f, -1.0f),
 	  up(0.0f, 1.0f, 0.0f),
@@ -42,8 +41,46 @@ glm::mat4 Camera::getProjectionMatrix() {
 		glm::radians(fov),
 		aspectRatio,
 		0.1f,
-		100.0f
+		2000.0f
 	);
+}
+
+glm::vec3 Camera::getPosition() {
+	return position;
+}
+
+glm::vec3 Camera::getForwardDirection() {
+	return forward;
+}
+
+glm::vec3 Camera::getRightDirection() {
+	return right;
+}
+
+glm::vec3 Camera::getUpDirection() {
+	return up;
+}
+
+void Camera::updatePosition(glm::vec3 newPosition) {
+	position = newPosition;
+};
+
+void Camera::updateAspectRatio(GLfloat height, GLfloat width) {
+	aspectRatio = height / width;
+};
+
+void Camera::updateViewXRelYRel(float x, float y) {
+
+	// sdl3's xrel event value is positive when moving right, right is negative in world space, so negation is needed
+	yaw += x * mouseSensitivity;
+	pitch -= y * mouseSensitivity;
+
+	// clamp pitch so you cant roll over top
+	if (pitch > 89.0f) pitch = 89.0f;
+	if (pitch < -89.0f) pitch = -89.0f;
+
+	// recalculate forward/right/up vectors now that view has changed
+	calcuateRelativeVectors();
 }
 
 void Camera::calcuateRelativeVectors() {
@@ -68,34 +105,4 @@ void Camera::calcuateRelativeVectors() {
 	up = glm::normalize(
 		glm::cross(right, forward)
 	);
-}
-
-void Camera::processKeyboard(float dt) {
-	
-	float velocity = movementSpeed * dt;
-
-	// get keyboard inputs
-	const bool* keyInputs = SDL_GetKeyboardState(nullptr);
-
-	if (keyInputs[SDL_SCANCODE_W]) position += forward * velocity;
-	if (keyInputs[SDL_SCANCODE_S]) position -= forward * velocity;
-	if (keyInputs[SDL_SCANCODE_A]) position -= right * velocity;
-	if (keyInputs[SDL_SCANCODE_D]) position += right * velocity;
-
-	if (keyInputs[SDL_SCANCODE_LSHIFT]) position -= up * velocity;
-	if (keyInputs[SDL_SCANCODE_SPACE]) position += up * velocity;
-}
-
-void Camera::processMouse(float x, float y) {
-
-	// sdl3's xrel event value is positive when moving right, right is negative in world space, so negation is needed
-	yaw += x * mouseSensitivity;
-	pitch -= y * mouseSensitivity;
-
-	// clamp pitch so you cant roll over top
-	if (pitch > 89.0f) pitch = 89.0f;
-	if (pitch < -89.0f) pitch = -89.0f;
-
-	// recalculate forward/right/up vectors now that view has changed
-	calcuateRelativeVectors();
 }

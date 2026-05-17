@@ -1,9 +1,5 @@
 #pragma once
 
-#define SEND_U_PROJECTION 1
-#define SEND_U_VIEW 2
-#define SEND_U_CAMERA_POSITION 4
-
 #include <glm/glm.hpp>
 #include <glad/glad.h>
 
@@ -16,8 +12,16 @@ public:
     glm::mat4 getViewMatrix();
     glm::mat4 getProjectionMatrix();
 
-    void processKeyboard(GLfloat dt);
-    void processMouse(GLfloat x, GLfloat y);
+    glm::vec3 getPosition();
+    glm::vec3 getForwardDirection();
+    glm::vec3 getRightDirection();
+    glm::vec3 getUpDirection();
+
+    void updatePosition(glm::vec3 newPosition);
+    void updateAspectRatio(GLfloat height, GLfloat width);
+    void updateViewXRelYRel(float x, float y);
+
+private:
 
     // current camera position
     glm::vec3 position;
@@ -31,11 +35,6 @@ public:
     // camera relative up
     glm::vec3 up;
 
-    // changable by window resize
-    GLfloat aspectRatio;
-
-private:
-
     // field of view
     GLfloat fov;
     
@@ -44,9 +43,11 @@ private:
 
     // up/down view
     GLfloat pitch;
-    
+
+    // changable by window resize
+    GLfloat aspectRatio;
+
     GLfloat mouseSensitivity;
-    GLfloat movementSpeed;
 
     // calculate camera relative front and up vectors
     void calcuateRelativeVectors();
