@@ -135,6 +135,16 @@ struct BSPFace {
 // implemented as a single uint_8 vector for rgb values
 
 // lump 9: clip nodes
+
+enum class contentType : int {
+	CONTENTS_EMPTY = -1,
+	CONTENTS_SOLID = -2,
+	CONTENTS_WATER = -3,
+	CONTENTS_SLIME = -4,
+	CONTENTS_LAVA  = -5,
+	CONTENTS_SKY   = -6
+};
+
 struct BSPClipNode {
 	int32_t iPlane;       // index into planes
 	int16_t iChildren[2]; // negative numbers are contents
@@ -186,18 +196,20 @@ public:
 	// load BSP file from path
 	bool load(const char* path);
 
-	std::span<const BSPFace>        faces()       { return _faces; }
-	std::span<const BSPPlane>		planes()	  { return _planes; }
-	std::span<const BSPVertex>      vertices()    { return _vertices; }
-	std::span<const BSPEdge>        edges()       { return _edges; }
-	std::span<const BSPSurfEdge>    surfEdges()   { return _surfEdges; }
-	std::span<const BSPTexture>     textures()    { return _textures; }
-	std::span<const BSPTextureInfo> textureInfo() { return _textureInfo; }
-	std::span<const BSPLeaf>        leaves()      { return _leaves; }
-	std::span<const BSPNode>        nodes()       { return _nodes; }
-	std::span<const BSPModel>       models()      { return _models; }
-	std::span<const BSPEntity>      entities()    { return _entities; }
-	std::span<const uint8_t>        lightmap()    { return _lightMap; }
+	std::span<const BSPEntity>      entities()		{ return _entities; }
+	std::span<const BSPPlane>		planes()		{ return _planes; }
+	std::span<const BSPTexture>     textures()		{ return _textures; }
+	std::span<const BSPVertex>      vertices()		{ return _vertices; }
+	std::span<const BSPNode>        nodes()			{ return _nodes; }
+	std::span<const BSPTextureInfo> textureInfo()	{ return _textureInfo; }
+	std::span<const uint8_t>        lightmap()		{ return _lightMap; }
+	std::span<const BSPFace>        faces()			{ return _faces; }
+	std::span<const BSPClipNode>	clipNodes()		{ return _clipNodes; }
+	std::span<const BSPLeaf>        leaves()		{ return _leaves; }
+	std::span<const BSPMarkSurface> markSurfaces()	{ return _markSurfaces; }
+	std::span<const BSPEdge>        edges()			{ return _edges; }
+	std::span<const BSPSurfEdge>    surfEdges()		{ return _surfEdges; }
+	std::span<const BSPModel>       models()		{ return _models; }
 	
 	// parse required wad files from worldspawn entity
 	std::vector<std::string> requiredWADs();

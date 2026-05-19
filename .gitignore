@@ -75,6 +75,10 @@ Testing/
 # libraries
 libs/
 
+# utils
+utils/
+
 # models and textures (for now)
 assets/models/
 assets/textures/
+assets/game/
