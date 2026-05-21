@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(OpenGLFPS LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # fetch sdl3
@@ -34,12 +34,19 @@ target_link_libraries(imgui PRIVATE SDL3::SDL3)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/rendering/Shader.cpp
-    src/scene/Camera.cpp
     src/rendering/Mesh.cpp
     src/rendering/Model.cpp
     src/rendering/Texture.cpp
     src/rendering/Material.cpp
     src/rendering/Skybox.cpp
+    src/scene/Camera.cpp
+    src/game/Player.cpp
+    src/physics/Collision.cpp
+    src/physics/PlayerMovement.cpp
+    src/debug/DebugDrawer.cpp
+    src/mapping/WADFile.cpp
+    src/mapping/BSPFile.cpp
+    src/mapping/BSPMap.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -48,6 +55,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     include/rendering/
     include/scene/
     include/physics/
+    include/game/
+    include/debug/
+    include/mapping/
     libs/glad/include
     libs/stb
     libs/glm
