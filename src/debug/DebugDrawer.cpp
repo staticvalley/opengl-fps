@@ -12,11 +12,13 @@ GLuint DebugDrawer::vbo = 0;
 
 Shader* DebugDrawer::AABBShader = nullptr;
 Shader* DebugDrawer::gizmoShader = nullptr;
+Shader* DebugDrawer::pointShader = nullptr;
 
 void DebugDrawer::init() {
 
     AABBShader = new Shader("assets/shaders/debug/debugAABB.vert", "assets/shaders/debug/debugAABB.frag");
     gizmoShader = new Shader("assets/shaders/debug/debug3DGizmo.vert", "assets/shaders/debug/debug3DGizmo.frag");
+    pointShader = AABBShader;
 
     // create vertex buffer and array
     glGenVertexArrays(1, &vao);
@@ -110,9 +112,39 @@ void DebugDrawer::draw3DGizmo(Camera& camera) {
     glBindVertexArray(0);
 }
 
+void DebugDrawer::drawPoint(Camera& camera, const glm::vec3& point, const glm::vec3& color, float size) {
+    
+    glm::vec3 lines[] = {
+        point - glm::vec3(size, 0, 0), point + glm::vec3(size, 0, 0),
+        point - glm::vec3(0, size, 0), point + glm::vec3(0, size, 0),
+        point - glm::vec3(0, 0, size), point + glm::vec3(0, 0, size),
+    };
+
+    // dont vanish behind geometry
+    glDisable(GL_DEPTH_TEST);
+
+    // insert line data
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(lines), lines);
+
+    // draw
+    pointShader->bind();
+    pointShader->setUniformMat4("u_view", camera.getViewMatrix());
+    pointShader->setUniformMat4("u_projection", camera.getProjectionMatrix());
+    pointShader->setUniformMat4("u_model", glm::mat4(1.0f));
+    pointShader->setUniformVec3("u_color", color);
+    glDrawArrays(GL_LINES, 0, 6);
+    
+    // unbind vao and re-enable z testing
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+}
+
 void DebugDrawer::cleanup() {
     delete AABBShader;
     delete gizmoShader;
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
 }
+
