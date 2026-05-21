@@ -136,14 +136,12 @@ struct BSPFace {
 
 // lump 9: clip nodes
 
-enum class contentType : int {
-	CONTENTS_EMPTY = -1,
-	CONTENTS_SOLID = -2,
-	CONTENTS_WATER = -3,
-	CONTENTS_SLIME = -4,
-	CONTENTS_LAVA  = -5,
-	CONTENTS_SKY   = -6
-};
+#define BSP_CONTENTS_EMPTY	-1 // empty leaf
+#define BSP_CONTENTS_SOLID	-2 // solid leaf
+#define BSP_CONTENTS_WATER	-3 // water leaf
+#define BSP_CONTENTS_SLIME	-4 // slime leaf
+#define BSP_CONTENTS_LAVA	-5 // lava leaf
+#define BSP_CONTENTS_SKY	-6 // sky leaf
 
 struct BSPClipNode {
 	int32_t iPlane;       // index into planes
