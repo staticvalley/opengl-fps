@@ -27,7 +27,12 @@ public:
 	void draw(Shader& shader);
 
 	// given some line, check where it intersects the clipping hull
-	int traceHullSegment(const int nodeIndex, const glm::vec3& segmentStart, const glm::vec3& segmentEnd);
+	int traceHullSegment(
+		const int nodeIndex, 
+		const glm::vec3& segmentStart, 
+		const glm::vec3& segmentEnd, 
+		glm::vec3& outNormal
+	);
 	
 	BSPFile bsp;
 	std::unordered_map<std::string, WADTexture> wadTextureMap;

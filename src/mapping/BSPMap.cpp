@@ -195,7 +195,7 @@ Mesh* BSPMap::buildFaceMesh(const BSPFace& face) {
 	return new Mesh(vertices, indices);
 }
 
-int BSPMap::traceHullSegment(const int nodeIndex, const glm::vec3& segmentStart, const glm::vec3& segmentEnd) {
+int BSPMap::traceHullSegment(const int nodeIndex, const glm::vec3& segmentStart, const glm::vec3& segmentEnd, glm::vec3& outNormal) {
 	
 	// epsilon (helps with ramps/inclines)
 	const float acceptanceEpsilon = -0.03125f;
@@ -206,6 +206,7 @@ int BSPMap::traceHullSegment(const int nodeIndex, const glm::vec3& segmentStart,
 
 	const BSPClipNode& cNode = bsp.clipNodes()[nodeIndex];
 	const BSPPlane& cPlane = bsp.planes()[cNode.iPlane];
+	glm::vec3 planeNormal = glm::vec3(cPlane.vNormal.x, cPlane.vNormal.z, -cPlane.vNormal.y);
 
 	float segmentStartDistance = glm::dot(
 		segmentStart,
@@ -219,11 +220,11 @@ int BSPMap::traceHullSegment(const int nodeIndex, const glm::vec3& segmentStart,
 
 	// if both points are on positive side of plane, recurse front (0)
 	if (segmentStartDistance >= acceptanceEpsilon && segmentEndDistance >= acceptanceEpsilon)
-		return traceHullSegment(cNode.iChildren[0], segmentStart, segmentEnd);
+		return traceHullSegment(cNode.iChildren[0], segmentStart, segmentEnd, outNormal);
 	
 	// if both points are on negative side of plane, recurse back (1)
 	if (segmentStartDistance < acceptanceEpsilon && segmentEndDistance < acceptanceEpsilon)
-		return traceHullSegment(cNode.iChildren[1], segmentStart, segmentEnd);
+		return traceHullSegment(cNode.iChildren[1], segmentStart, segmentEnd, outNormal);
 
 	// i think i have computed the line plane intersection correctly
 	// https://en.wikipedia.org/wiki/Line%E2%80%93plane_intersection
@@ -238,10 +239,15 @@ int BSPMap::traceHullSegment(const int nodeIndex, const glm::vec3& segmentStart,
 	int farSide = segmentStartDistance >= 0 ? 1 : 0;
 
 	// check nearside
-	int nearContents = traceHullSegment(cNode.iChildren[nearSide], segmentStart, intersection);
-	if ((contentType)nearContents != contentType::CONTENTS_EMPTY)
+	int nearContents = traceHullSegment(cNode.iChildren[nearSide], segmentStart, intersection, outNormal);
+	if (nearContents != BSP_CONTENTS_EMPTY)
 		return nearContents;
+		
 
 	// check farside
-	return traceHullSegment(cNode.iChildren[farSide], intersection, segmentEnd);
+	int farContents = traceHullSegment(cNode.iChildren[farSide], intersection, segmentEnd, outNormal);
+	if (farContents != BSP_CONTENTS_EMPTY)
+		outNormal = nearSide == 0 ? planeNormal : -planeNormal;
+
+	return farContents;
 }
