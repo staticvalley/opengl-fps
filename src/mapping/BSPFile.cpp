@@ -103,8 +103,8 @@ std::vector<std::string> BSPFile::requiredWADs() {
 	};
 
 	for (const BSPEntity& entity : _entities) {
-		if (entity.count("classname") && entity.at("classname") == "worldspawn")
-			if (entity.count("wad")) {
+		if (entity.contains("classname") && entity.at("classname") == "worldspawn")
+			if (entity.contains("wad")) {
 				// get wad file paths
 				std::vector<std::string>wads = split(entity.at("wad"), ";");
 				clearEmptyFilenames(wads);

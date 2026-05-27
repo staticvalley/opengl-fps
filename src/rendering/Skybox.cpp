@@ -3,10 +3,12 @@
 #include <Skybox.hpp>
 #include <Shader.hpp>
 #include <Camera.hpp>
+#include <print>
 
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
 #include "../libs/stb/stb_image.h"
+#include <string>
 
 // define unit cube for skybox
 static const GLfloat SKYBOX_VERTICES[] = {
@@ -18,10 +20,9 @@ static const GLfloat SKYBOX_VERTICES[] = {
     -1,-1,-1,  -1,-1, 1,   1,-1, 1,   1,-1, 1,   1,-1,-1,  -1,-1,-1
 };
 
-Skybox::Skybox(const char* faceFilePaths[], Shader* skyboxShader) 
+Skybox::Skybox(const std::string faceFilePaths[], Shader* skyboxShader, uint8_t skyboxType) 
     : shader(skyboxShader)
 {
-    
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
 
@@ -33,10 +34,11 @@ Skybox::Skybox(const char* faceFilePaths[], Shader* skyboxShader)
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
-    textureId = loadCubeMap(faceFilePaths);
+    textureId = loadCubeMap(faceFilePaths, skyboxType);
 }
 
-GLuint Skybox::loadCubeMap(const char* faceFilePaths[]) {
+
+GLuint Skybox::loadCubeMap(const std::string faceFilePaths[], uint8_t skyboxType) {
 
     // create and bind texture object as cube map
     GLuint id;
@@ -45,26 +47,61 @@ GLuint Skybox::loadCubeMap(const char* faceFilePaths[]) {
 
     int width, height, nChannels;
     for (int i = 0; i < 6; i++) {
-        unsigned char* data = stbi_load(faceFilePaths[i], &width, &height, &nChannels, 0);
-        if (data) {
-            glTexImage2D(
-                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                0,
-                GL_RGB,
-                width,
-                height,
-                0,
-                GL_RGB,
-                GL_UNSIGNED_BYTE,
-                data
-            );
+
+        bool flipHorizontally = false;
+
+        // see line 66
+        if (skyboxType == SKYBOX_TYPE_GOLDSRC) {
+            // top and bottom face textures need to be flipped vertically for opengl cubemap
+        	stbi_set_flip_vertically_on_load(i == SKYBOX_GOLDSRC_UP || i == SKYBOX_GOLDSRC_DN);
         }
-        else {
-            SDL_Log("error loading skybox texture (face %d)", i);
+
+    	unsigned char* data = stbi_load(faceFilePaths[i].c_str(), &width, &height, &nChannels, 0);
+        if (!data) {
+            SDL_Log("error loading skybox face %d: %s", i, faceFilePaths[i].c_str());
+            return id;
         }
+
+        GLenum format = nChannels == 4 ? GL_RGBA : GL_RGB;
+
+        /**
+        * goldsrc tga skyboxes have different orientations
+        * - up face must be rotated 90 degrees clockwise
+        * - down face must be rotated 90 degrees counter-clockwise
+        * - front, back, left, and right faces must be horizontally flipped
+        */
+        if(skyboxType == SKYBOX_TYPE_GOLDSRC) {
+            switch (i) {
+            case SKYBOX_GOLDSRC_UP:
+                rotate90(data, width, height, format, 1);
+                break;
+            case SKYBOX_GOLDSRC_DN:
+                rotate90(data, width, height, format, 3);
+                break;
+            default:
+                flipHorizontal(data, width, height, format);
+                break;
+            }
+        }
+            
+        glTexImage2D(
+            GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+            0, 
+            format, 
+            width, 
+            height, 
+            0, 
+            format,
+            GL_UNSIGNED_BYTE, 
+            data
+        );
+
         stbi_image_free(data);
     }
 
+    // reset
+    stbi_set_flip_vertically_on_load(false);
+    
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -72,6 +109,36 @@ GLuint Skybox::loadCubeMap(const char* faceFilePaths[]) {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     return id;
+}
+
+void Skybox::flipHorizontal(unsigned char* data, int width, int height, GLenum format) {
+	int channels = format == GL_RGB ? 3 : 4;
+    for(int y = 0; y < height; y++) {
+        for(int x = 0; x < width / 2; x++) {
+            int leftIndex = (y * width + x) * channels;
+            int rightIndex = (y * width + (width - 1 - x)) * channels;
+            for(int c = 0; c < channels; c++)
+                std::swap(data[leftIndex + c], data[rightIndex + c]);
+        }
+	}
+}
+
+void Skybox::rotate90(unsigned char* data, int width, int height, GLenum format, int steps) {
+    // normalize to 0-3, handle negatives
+    steps = ((steps % 4) + 4) % 4; 
+    int channels = format == GL_RGBA ? 4 : 3;
+    std::vector<unsigned char> tmp(width * height * channels);
+    for (int s = 0; s < steps; s++) {
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int src = (y * width + x) * channels;
+                int dst = (x * height + (height - 1 - y)) * channels;
+                for (int c = 0; c < channels; c++)
+                    tmp[dst + c] = data[src + c];
+            }
+        }
+        std::memcpy(data, tmp.data(), tmp.size());
+    }
 }
 
 Skybox::~Skybox() {
@@ -83,6 +150,11 @@ Skybox::~Skybox() {
 
 void Skybox::draw(Camera& camera) {
     
+    if (!shader) {
+	    SDL_Log("error loading shader: shader is null");
+        return;
+    }
+
     // bind skybox specific shader
     shader->bind();
 
@@ -105,4 +177,37 @@ void Skybox::draw(Camera& camera) {
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
+}
+
+Skybox::Skybox(Skybox&& other) noexcept
+    : shader(other.shader), vao(other.vao), vbo(other.vbo), textureId(other.textureId) {
+    
+    // null out other
+    other.shader = nullptr;
+    other.vao = 0;
+    other.vbo = 0;
+    other.textureId = 0;
+}
+
+Skybox& Skybox::operator=(Skybox&& other) noexcept {
+    if (this != &other) {
+        // clean up existing resources
+        delete shader;
+        glDeleteVertexArrays(1, &vao);
+        glDeleteBuffers(1, &vbo);
+        glDeleteTextures(1, &textureId);
+        
+        // take ownership
+        shader = other.shader;
+        vao = other.vao;
+        vbo = other.vbo;
+        textureId = other.textureId;
+        
+        // null out other
+        other.shader = nullptr;
+        other.vao = 0;
+        other.vbo = 0;
+        other.textureId = 0;
+    }
+    return *this;
 }

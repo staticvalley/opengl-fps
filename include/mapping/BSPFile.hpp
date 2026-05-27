@@ -171,6 +171,10 @@ typedef int32_t BSPSurfEdge;
 // lump 14: models
 
 #define BSP_MAX_MAP_HULLS 4
+#define BSP_HULL_POINT		0
+#define BSP_HULL_STANDING	1
+#define BSP_HULL_LARGE		2
+#define BSP_HULL_CROUCHING	3
 struct BSPModel {
 	float nMins[3], nMaxs[3];				// defines bounding box
 	Vector3D vOrigin;						// coordinates to move the // coordinate system

@@ -61,27 +61,34 @@ vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 fragment_position, 
 
 void main(){
 
+	// get base color from sampling mesh texture
+	vec4 texel = texture(u_texture, v_uv);
+
+	// alpha test
+	if(texel.a < 0.5)
+		discard;
+
 	// get normalized direction from camera to fragment
 	vec3 viewing_direction = normalize(u_camera_position - v_fragment_position);
 
-	// get base color from sampling mesh texture
-	vec3 base_color = vec3(texture(u_texture, v_uv));
+	// normal of surface
+	vec3 normal = normalize(v_normal);
 
 	vec3 lighting_factor = vec3(0.0);
 
 	// add directional lighting
 	if(u_has_directional_light)
-		lighting_factor += calculate_directional_light(u_directional_light, normalize(v_normal), viewing_direction);
+		lighting_factor += calculate_directional_light(u_directional_light, normal, viewing_direction);
 
 	// add point lighting
 	for(int i = 0; i < u_point_light_count; i++)
-		lighting_factor += calculate_point_light(u_point_lights[i], normalize(v_normal), v_fragment_position, viewing_direction);
+		lighting_factor += calculate_point_light(u_point_lights[i], normal, v_fragment_position, viewing_direction);
 	
 	// add spot lighting
 	for(int i = 0; i < u_spot_light_count; i++)
-		lighting_factor += calculate_spot_light(u_spot_lights[i], normalize(v_normal), v_fragment_position, viewing_direction);
+		lighting_factor += calculate_spot_light(u_spot_lights[i], normal, v_fragment_position, viewing_direction);
 
-	frag_color = vec4(lighting_factor * base_color, 1.0);
+	frag_color = vec4(lighting_factor * vec3(texel), texel.a);
 }
 
 vec3 calculate_directional_light(DirectionalLight light, vec3 normal, vec3 viewing_direction) {

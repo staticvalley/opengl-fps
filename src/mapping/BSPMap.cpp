@@ -2,13 +2,15 @@
 #include <BSPFile.hpp>
 #include <WADFile.hpp>
 #include <string>
+#include <print>
+#include <Skybox.hpp>
 #include <SDL3/SDL.h>
 
 BSPMap::BSPMap(const char* bspPath)
 {
 	if (!bsp.load(bspPath))
 		return;
-	
+	 
 	// get WAD paths
 	std::vector<std::string> wadPaths = bsp.requiredWADs();
 
@@ -23,80 +25,112 @@ BSPMap::BSPMap(const char* bspPath)
 		wadTextureMap.merge(wad.takeTextures());
 	}
 
+	buildSkybox();
 	buildSurfaces();
 }
 
 BSPMap::~BSPMap() {
-	for (BSPSurface& surface : surfaces) {
+	for (BSPSurface& surface : opaqueSurfaces)
 		delete surface.mesh;
-	}
+
+	for (BSPSurface& surface : alphaTestSurfaces)
+		delete surface.mesh;
+
+	for (BSPSurface& surface : blendedSurfaces)
+		delete surface.mesh;
+
 	delete nullTexture;
 }
 
-void BSPMap::draw(Shader& shader) {
-
-	// BSP geometry is already in world space, use identity model matrix
+void BSPMap::draw(Shader& shader, Camera& camera) {
+	
 	shader.setUniformMat4("u_model", glm::mat4(1.0f));
 
-	for (BSPSurface& surface : surfaces) {
-		if (surface.texture) {
-			surface.texture->bind(0);
-			shader.setUniformInt1("u_texture", 0);
-		}
-		else if(nullTexture) {
-			nullTexture->bind(0);
-			shader.setUniformInt1("u_texture", 0);
-		}		
-		surface.mesh->draw(shader);
-	}
+	// opaque draw pass
+	for(BSPSurface& surface : opaqueSurfaces)
+		drawSurface(surface, shader);
+
+	// transparent draw pass
+	for(BSPSurface surface : alphaTestSurfaces)
+		drawSurface(surface, shader);
+
+	skybox.draw(camera);
+}
+
+void BSPMap::drawSurface(BSPSurface surface, Shader& shader) {
+	
+	// if the surface doesnt have a set texture, use nullTexture
+	if (surface.texture)
+		surface.texture->bind(0);
+	else if (nullTexture)
+		nullTexture->bind(0);
+	else
+		return;
+
+	shader.setUniformInt1("u_texture", 0);
+	surface.mesh->draw(shader);
 }
 
 void BSPMap::buildSurfaces() {
-	
-	// model 0 is world geometry model
-	const BSPModel& worldModel = bsp.models()[0];
 
 	// make cache for texture pointers
 	std::unordered_map<int, std::shared_ptr<Texture>> textureCache;
 
-	// create surface for each face in model
-	for (int i = 0; i < worldModel.nFaces; i++) {
+	for (int j = 0; j < bsp.models().size(); j++) {
 
-		// get given face and texture info for face
-		const BSPFace& face = bsp.faces()[worldModel.iFirstFace + i];
-		const BSPTextureInfo& texInfo = bsp.textureInfo()[face.iTextureInfo];
+		// model 0 is world geometry model
+		// models after 0 are brush entities
+		const BSPModel& model = bsp.models()[j];
 
-		// skip sky and special faces
-		if (texInfo.nFlags & 0x1) continue;  // SKY flag
+		// create surface for each face in model
+		for (int i = 0; i < model.nFaces; i++) {
 
-		// get texture referenced by texture info
-		const uint32_t textureIndex = texInfo.iMiptex;
-		const BSPTexture currentTexture = bsp.textures()[texInfo.iMiptex];
+			// get given face and texture info for face
+			const BSPFace& face = bsp.faces()[model.iFirstFace + i];
+			const BSPTextureInfo& texInfo = bsp.textureInfo()[face.iTextureInfo];
 
-		// add texture to cache
-		if (!textureCache.contains(textureIndex)) {
-			// if texture referenced is in an external wad
-			if (currentTexture.external) {
-				// search for texture name in wad map
-				auto search = wadTextureMap.find(currentTexture.name);
-				if (search != wadTextureMap.end()) {
-					// found, build texture
-					WADTexture referencedTexture = wadTextureMap[currentTexture.name];
-					textureCache[textureIndex] = buildTexture(referencedTexture);
+			// skip sky and special faces
+			if (texInfo.nFlags & 0x1) continue;  // SKY flag
+
+			// get texture referenced by texture info
+			const uint32_t textureIndex = texInfo.iMiptex;
+			const BSPTexture currentTexture = bsp.textures()[textureIndex];
+
+			// add texture to cache
+			if (!textureCache.contains(textureIndex)) {
+				// if texture referenced is in an external wad
+				if (currentTexture.external) {
+					// search for texture name in wad map
+					auto search = wadTextureMap.find(currentTexture.name);
+					if (search != wadTextureMap.end()) {
+						// found, build texture
+						WADTexture referencedTexture = wadTextureMap[currentTexture.name];
+						textureCache[textureIndex] = buildTexture(referencedTexture);
+					} else {
+						// texture not found
+						textureCache[textureIndex] = nullptr;
+						std::println("tex not found: {}", currentTexture.name);
+					}
 				} else {
-					// texture not found
-					textureCache[textureIndex] = nullptr;
+					// texture in bsp file 
+					textureCache[textureIndex] = buildTexture(currentTexture);
 				}
-			} else {
-				// texture in bsp file 
-				textureCache[textureIndex] = buildTexture(bsp.textures()[textureIndex]);
 			}
-		}
 
-		BSPSurface surface;
-		surface.mesh = buildFaceMesh(face);
-		surface.texture = textureCache[textureIndex];
-		surfaces.push_back(surface);
+			BSPSurface surface;
+			surface.mesh = buildFaceMesh(face);
+			surface.texture = textureCache[textureIndex];
+
+			if (textureCache[textureIndex] != nullptr)
+				switch (currentTexture.name[0]) {
+				case '{':
+					alphaTestSurfaces.push_back(surface);
+					break;
+				default:
+					opaqueSurfaces.push_back(surface);
+					break;
+				}
+		}
 	}
 }
 
@@ -104,16 +138,30 @@ std::shared_ptr<Texture> BSPMap::buildTexture(const BSPTexture& bspTexture) {
 		
 	if (bspTexture.pixels.empty()) return nullptr;
 
-	// convert paletted pixels to rgb
-	std::vector<uint8_t> rgb(bspTexture.width * bspTexture.height * 3);
-	for (int p = 0; p < bspTexture.width * bspTexture.height; p++) {
-		uint8_t paletteIndex = bspTexture.pixels[p];
-		rgb[p * 3 + 0] = bspTexture.palette[paletteIndex * 3 + 0];
-		rgb[p * 3 + 1] = bspTexture.palette[paletteIndex * 3 + 1];
-		rgb[p * 3 + 2] = bspTexture.palette[paletteIndex * 3 + 2];
+	// '{' signals texture with transparency in goldsrc
+	bool isTransparent = bspTexture.name[0] == '{';
+
+	std::vector<uint8_t> pixel(bspTexture.width * bspTexture.height * (isTransparent ? 4 : 3));
+
+	if (isTransparent){
+		// convert paletted pixels to rgba
+		for (int p = 0; p < bspTexture.width * bspTexture.height; p++) {
+			uint8_t paletteIndex = bspTexture.pixels[p];
+			pixel[p * 4 + 0] = bspTexture.palette[paletteIndex * 3 + 0];
+			pixel[p * 4 + 1] = bspTexture.palette[paletteIndex * 3 + 1];
+			pixel[p * 4 + 2] = bspTexture.palette[paletteIndex * 3 + 2];
+			pixel[p * 4 + 3] = (isTransparent && paletteIndex == 255) ? 0 : 255;
+		}
+	} else {
+		for (int p = 0; p < bspTexture.width * bspTexture.height; p++) {
+			uint8_t paletteIndex = bspTexture.pixels[p];
+			pixel[p * 3 + 0] = bspTexture.palette[paletteIndex * 3 + 0];
+			pixel[p * 3 + 1] = bspTexture.palette[paletteIndex * 3 + 1];
+			pixel[p * 3 + 2] = bspTexture.palette[paletteIndex * 3 + 2];
+		}
 	}
 
-	return std::shared_ptr<Texture>(new Texture(rgb.data(), bspTexture.width, bspTexture.height));
+	return std::shared_ptr<Texture>(new Texture(pixel.data(), bspTexture.width, bspTexture.height, (isTransparent ? GL_RGBA : GL_RGB)));
 }
 
 Mesh* BSPMap::buildFaceMesh(const BSPFace& face) {
@@ -147,16 +195,15 @@ Mesh* BSPMap::buildFaceMesh(const BSPFace& face) {
 		else
 			bspVertex = bsp.vertices()[edge.iVertex[1]];
 
-		// goldsrc bsp's have +z as up, converting vertex to opengl
 		faceVertices.push_back(
-			glm::vec3(bspVertex.x, bspVertex.z, -bspVertex.y) * BSP_TO_ENGINE_UNIT_CONVERSION
+			BSP_TO_ENGINE_VECTOR(bspVertex) * BSP_TO_ENGINE_UNIT_CONVERSION
 		);
 	}
 
 	const BSPPlane& plane = bsp.planes()[face.iPlane];
 
 	// get normal of face plane in opengl directions
-	glm::vec3 normal = glm::vec3(plane.vNormal.x, plane.vNormal.z, -plane.vNormal.y);
+	glm::vec3 normal = BSP_TO_ENGINE_VECTOR(plane.vNormal);
 	
 	// flip orientation
 	if (face.nPlaneSide) normal = -normal;
@@ -168,8 +215,8 @@ Mesh* BSPMap::buildFaceMesh(const BSPFace& face) {
 		vertex.normal = normal;
 
 		// texture access vectors
-		glm::vec3 s = glm::vec3(texInfo.vS.x, texInfo.vS.z, -texInfo.vS.y);
-		glm::vec3 t = glm::vec3(texInfo.vT.x, texInfo.vT.z, -texInfo.vT.y);
+		glm::vec3 s = BSP_TO_ENGINE_VECTOR(texInfo.vS);
+		glm::vec3 t = BSP_TO_ENGINE_VECTOR(texInfo.vT);
 
 		// uv coordinates for vertex
 		// 1. project vertex position to texel (s,t) coordinates
@@ -182,7 +229,7 @@ Mesh* BSPMap::buildFaceMesh(const BSPFace& face) {
 		vertex.uv = glm::vec2(u, v);
 		vertices.push_back(vertex);
 	}
-
+	
 
 	// fan triangulate the convex polygon
 	// vertex 0 is the hub, connect to each subsequent edge
@@ -193,6 +240,33 @@ Mesh* BSPMap::buildFaceMesh(const BSPFace& face) {
 	}
 
 	return new Mesh(vertices, indices);
+}
+
+void BSPMap::buildSkybox() {
+
+	std::string skyBoxName;
+
+	// get skybox key
+	for (const BSPEntity& entity : bsp.entities()) {
+		if (entity.contains("classname") && entity.at("classname") == "worldspawn")
+			if (entity.contains("skyname"))
+				skyBoxName = entity.at("skyname");
+	}
+
+	std::println("skybox name: [{}]", skyBoxName);
+
+	const std::string basePath = std::string(ENGINE_SKY_DIR) + skyBoxName;
+
+	const std::string paths[6] = {
+		basePath + "rt.tga",
+		basePath + "lf.tga",
+		basePath + "up.tga",
+		basePath + "dn.tga",
+		basePath + "ft.tga",
+		basePath + "bk.tga",
+	};
+
+	skybox = Skybox(paths, new Shader("assets/shaders/skybox.vert", "assets/shaders/skybox.frag"), SKYBOX_TYPE_GOLDSRC);
 }
 
 int BSPMap::traceHullSegment(const int nodeIndex, const glm::vec3& segmentStart, const glm::vec3& segmentEnd, glm::vec3& outNormal) {
@@ -210,13 +284,13 @@ int BSPMap::traceHullSegment(const int nodeIndex, const glm::vec3& segmentStart,
 
 	float segmentStartDistance = glm::dot(
 		segmentStart,
-		glm::vec3(cPlane.vNormal.x, cPlane.vNormal.z, -cPlane.vNormal.y)
-	) - cPlane.fDist * BSP_TO_ENGINE_UNIT_CONVERSION;
+		BSP_TO_ENGINE_VECTOR(cPlane.vNormal)
+	) - cPlane.fDist;
 
 	float segmentEndDistance = glm::dot(
 		segmentEnd,
-		glm::vec3(cPlane.vNormal.x, cPlane.vNormal.z, -cPlane.vNormal.y)
-	) - cPlane.fDist * BSP_TO_ENGINE_UNIT_CONVERSION;
+		BSP_TO_ENGINE_VECTOR(cPlane.vNormal)
+	) - cPlane.fDist;
 
 	// if both points are on positive side of plane, recurse front (0)
 	if (segmentStartDistance >= acceptanceEpsilon && segmentEndDistance >= acceptanceEpsilon)
@@ -235,8 +309,8 @@ int BSPMap::traceHullSegment(const int nodeIndex, const glm::vec3& segmentStart,
 	// i_{a} + i_{ab}*t 
 	glm::vec3 intersection = segmentStart + t * (segmentEnd - segmentStart);
 
-	int nearSide = segmentStartDistance >= 0 ? 0 : 1;
-	int farSide = segmentStartDistance >= 0 ? 1 : 0;
+	int nearSide = segmentStartDistance >= acceptanceEpsilon ? 0 : 1;
+	int farSide = segmentStartDistance >= acceptanceEpsilon ? 1 : 0;
 
 	// check nearside
 	int nearContents = traceHullSegment(cNode.iChildren[nearSide], segmentStart, intersection, outNormal);
