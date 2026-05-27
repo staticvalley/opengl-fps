@@ -40,6 +40,7 @@ PointLight pl;
 GLfloat lastTime = 0.0f;
 BSPMap* map;
 DirectionalLight sun;
+glm::vec3 spawnPos;
 
 bool debugHudOn = false;
 bool lightOn = true;
@@ -115,18 +116,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
 
 #endif
 
-    const char* skyboxFilePaths[] = {
-        "assets/textures/skybox/left.jpg",
-        "assets/textures/skybox/right.jpg",
-        "assets/textures/skybox/up.jpg",
-        "assets/textures/skybox/down.jpg",
-        "assets/textures/skybox/front.jpg",
-        "assets/textures/skybox/back.jpg",
-    };
-
-    skybox = new Skybox(skyboxFilePaths, new Shader("assets/shaders/skybox.vert", "assets/shaders/skybox.frag"));
-
-    map = new BSPMap("assets/game/de_inferno.bsp");
+    map = new BSPMap("assets/game/cs_assault.bsp");
 
     map->nullTexture = new Texture("assets/textures/missing_content.png");
 
@@ -138,7 +128,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
             std::string origin = entity.at("origin");
             float x, y, z;
             sscanf(origin.c_str(), "%f %f %f", &x, &y, &z);
-            glm::vec3 spawnPos = glm::vec3(x, z*2, -y) * 0.025f;
+            spawnPos = glm::vec3(x, z, -y) * BSP_TO_ENGINE_UNIT_CONVERSION;
             SDL_Log("spawn point found: %.2f %.2f %.2f", spawnPos.x, spawnPos.y, spawnPos.z);
             player = new Player(spawnPos, 90.0f, WINDOW_WIDTH / WINDOW_HEIGHT);
             break;
@@ -196,9 +186,7 @@ SDL_AppResult SDL_AppIterate(void* appstate) {
         basic->setUniformInt1("u_point_light_count", 0);
     }
 
-    map->draw(*basic);
-
-    skybox->draw(*(player->camera));
+    map->draw(*basic, *(player->camera));
 
     if (debugHudOn) {
         fps.tick();
@@ -246,7 +234,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
     delete player;
     delete basic;
-    delete skybox;
 #ifdef DEBUG
     DebugDrawer::cleanup();
 #endif 
@@ -261,19 +248,15 @@ void drawDebugHud() {
     glm::vec3 cameraForward = player->camera->getForwardDirection();
 
     glm::vec3 velocity = player->movement.velocity;
-    glm::vec3 origin = player->movement.position;
-
+    glm::vec3 origin = player->movement.origin;
     DebugDrawer::draw3DGizmo(*(player->camera));
     //for (SceneObject& obj : sceneObjectList)
     //    DebugDrawer::drawAABB(*(player->camera), obj.model->boundingBox);
-    DebugDrawer::drawAABB(
-        *(player->camera),
-        AABB::createFromPoint(player->position() + glm::vec3(0.0f, 1.6f, 0.0f), glm::vec3(0.5f, 1.8, 0.5f)),
-        glm::vec3(1.0f, 0.0f, 0.0f)
-    );
 
-    DebugDrawer::drawPoint(*(player->camera), origin, glm::vec3(1, 0, 0), 0.2);
-    DebugDrawer::drawPoint(*(player->camera), glm::vec3(63,2,2), glm::vec3(0, 1, 1), 0.2);
+    DebugDrawer::drawPoint(*(player->camera), origin, glm::vec3(0, 1, 1), 0.5);
+    DebugDrawer::drawPoint(*(player->camera), glm::vec3(0,0,0), glm::vec3(0, 0, 1), 0.5);
+    DebugDrawer::drawPoint(*(player->camera), spawnPos, glm::vec3(1, 0, 0), 0.5);
+    DebugDrawer::drawPoint(*(player->camera), glm::vec3(spawnPos.x, 0, spawnPos.z), glm::vec3(0, 1, 0), 0.5);
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
@@ -288,6 +271,8 @@ void drawDebugHud() {
     ImGui::Text("velocity [%.2lf %.2lf %.2lf]", velocity.x, velocity.y, velocity.z);
     ImGui::Text(fps.fpsString.c_str());
     ImGui::End();
+
+    
 
     ImGui::Render();
 

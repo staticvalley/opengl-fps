@@ -15,7 +15,7 @@ struct FPSCounter {
         frameCount++;
         if (currentTime - lastTime >= 1.0) {
             fpsString = std::format("{:.2} ms/frame", 1000.0f/(double)frameCount);
-            frameCount = 0.0f;
+            frameCount = 0;
             lastTime += 1.0f;
         }
     }
