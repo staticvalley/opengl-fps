@@ -82,3 +82,6 @@ utils/
 assets/models/
 assets/textures/
 assets/game/
+
+# doxygen output
+docs/

@@ -10,6 +10,24 @@ find_package(SDL3 CONFIG REQUIRED)
 # fetch opengl
 find_package(OpenGL REQUIRED)
 
+#fetch doxygen
+find_package(Doxygen)
+
+if(DOXYGEN_FOUND)
+    set(DOXYGEN_PROJECT_NAME "${PROJECT_NAME}")
+    set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/docs)
+    set(DOXYGEN_RECURSIVE YES)
+    set(DOXYGEN_EXTRACT_ALL YES)
+    set(DOXYGEN_GENERATE_LATEX NO)
+
+    doxygen_add_docs(
+        docs
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
+        COMMENT "creating documentation..."
+    )
+endif()
+
 # add glad
 add_library(glad libs/glad/src/glad.c)
 
