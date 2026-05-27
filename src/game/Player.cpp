@@ -6,10 +6,14 @@
 #include <SDL3/SDL.h>
 #include <algorithm>
 
-Player::Player(glm::vec3 position, GLfloat fov, GLfloat aspectRatio) 
-{
-	movement.position = position;
-	camera = new Camera(position + glm::vec3(0.0f, PM_EYEHEIGHT, 0.0f), fov, aspectRatio);
+Player::Player(glm::vec3 origin, GLfloat fov, GLfloat aspectRatio) {
+	movement.origin = origin;
+	//movement.origin.y += PM_PLAYER_ORIGIN;
+	camera = new Camera(
+		movement.origin + glm::vec3(0.0f, PM_EYEHEIGHT_FROM_ORIGIN, 0.0f), 
+		fov, 
+		aspectRatio
+	);
 	updateCollisionBox();
 }
 
@@ -60,8 +64,9 @@ void Player::update(float dt, BSPMap& map) {
 
 	movement.update(dt, movementInput, map);
 
-	//camera->updatePosition(movement.position + glm::vec3(0.0f, PM_EYEHEIGHT, 0.0f));
-	camera->updatePosition(movement.position + glm::vec3(0.0f, 0.0f, 0.0f));
+	// camera is PM_EYEHEIGHT units from the feet of the model
+	camera->updatePosition(movement.origin + glm::vec3(0.0f, PM_EYEHEIGHT_FROM_ORIGIN, 0.0f));
+
 	updateCollisionBox();
 }
 
@@ -71,7 +76,7 @@ void Player::processMouse(float x, float y) {
 
 void Player::updateCollisionBox() {
 	collisionBox = AABB::createFromPoint(
-		movement.position + glm::vec3(0.0f, PM_EYEHEIGHT / 2, 0.0f),
-		glm::vec3(0.5f, PM_EYEHEIGHT + 0.2f, 0.5f)
+		movement.origin + glm::vec3(0.0f, PM_PLAYER_ORIGIN, 0.0f),
+		glm::vec3(0.5f, PM_PLAYER_HEIGHT, 0.5f)
 	);
 }

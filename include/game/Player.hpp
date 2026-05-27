@@ -15,9 +15,9 @@ public:
 	void processMouse(GLfloat x, GLfloat y);
 	void updateCollisionBox();
 
-	void updatePos(glm::vec3 newp) { movement.position = newp; }
+	void updatePos(glm::vec3 newp) { movement.origin = newp; }
 
-	const glm::vec3& position() { return movement.position; }
+	const glm::vec3& position() { return movement.origin; }
 	const glm::vec3& velocity() { return movement.velocity; }
 
 	Camera* camera;
