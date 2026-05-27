@@ -9,36 +9,64 @@
 class Shader {
 public:
 
-    // compiles and links shader programs
+    /**
+     * @brief constructs shader from files
+     * @param vertPath full path to vertex shader file
+     * @param fragPath full path to fragment shader file
+     */
     Shader(const char* vertPath, const char* fragPath);
     ~Shader();
 
-    // bind shader for use in draw calls
+    /**
+     * @brief bind shader as active program 
+     */
     void bind();
 
-    // unbind shader
+    /**
+     * @brief unbinds shader as active program
+     */
     void unbind();
-
-    // ###############
-    // uniform setters
-    // ###############
-
-    // set bool uniform on shader
+    
+    /**
+     * @brief set bool uniform on shader
+     * @param name uniform identifier
+     * @param value uniform boolean value
+     */
     void setUniformBool1(const char* name, const bool value);
 
-    // set integer uniform on shader
+    /**
+     * @brief set int uniform on shader
+     * @param name uniform identifier
+     * @param value uniform int value
+     */
     void setUniformInt1(const char* name, int value);
 
-    // set float uniform on shader
+    /**
+     * @brief set float uniform on shader
+     * @param name uniform identifier
+     * @param value uniform float value
+     */
     void setUniformFloat1(const char* name, float value);
 
-    // set vec4 uniform on shader
-    void setUniformVec4(const char* name, const glm::vec4& value);
-
-    // set vec3 uniform on shader
+    /**
+     * @brief set 3 value vector uniform on shader
+     * @param name uniform identifier
+     * @param value uniform glm::vec3 value
+     */
     void setUniformVec3(const char* name, const glm::vec3& value);
 
-    // set 4x4 matrix uniform on shader
+    /**
+    * @brief set 4 value vector uniform on shader
+    * @param name uniform identifier
+    * @param value uniform glm::vec4 value
+    */
+    void setUniformVec4(const char* name, const glm::vec4& value);
+
+    /**
+     * @brief set 4x4 matrix uniform on shader
+     * @param name uniform identifier
+     * @param value uniform glm::mat4 value
+     */
     void setUniformMat4(const char* name, const glm::mat4& value);
 
 private:

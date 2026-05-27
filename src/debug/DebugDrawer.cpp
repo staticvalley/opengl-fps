@@ -121,7 +121,7 @@ void DebugDrawer::drawPoint(Camera& camera, const glm::vec3& point, const glm::v
     };
 
     // dont vanish behind geometry
-    glDisable(GL_DEPTH_TEST);
+    //glDisable(GL_DEPTH_TEST);
 
     // insert line data
     glBindVertexArray(vao);
@@ -137,7 +137,7 @@ void DebugDrawer::drawPoint(Camera& camera, const glm::vec3& point, const glm::v
     glDrawArrays(GL_LINES, 0, 6);
     
     // unbind vao and re-enable z testing
-    glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_DEPTH_TEST);
     glBindVertexArray(0);
 }
 
